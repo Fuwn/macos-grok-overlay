@@ -6,7 +6,9 @@
 A simple macOS overlay application for pinning <code>grok.com</code> to a dedicated window and key command <code>option+space</code>.
 </p>
 
-![Launcher Sample](images/macos-grok-overlay.jpeg)
+> This is a modified fork that uses native macOS window styling as opposed to the original custom styling.
+
+![Launcher Sample](images/macos-grok-overlay-fork.png)
 
 
 ## Installation:
