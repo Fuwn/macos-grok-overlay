@@ -7,6 +7,8 @@ A simple macOS overlay application for pinning <code>grok.com</code> to a dedica
 </p>
 
 > This is a modified fork that uses native macOS window styling as opposed to the original custom styling.
+>
+> A “Reset Size & Position” button has also been added, and the default window position has been modified to resemble that of the native ChatGPT app.
 
 ![Launcher Sample](images/macos-grok-overlay-fork.png)
 
