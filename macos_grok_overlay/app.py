@@ -12,7 +12,6 @@ from Quartz import *
 from .constants import (
     APP_TITLE,
     CORNER_RADIUS,
-    DRAG_AREA_HEIGHT,
     LOGO_BLACK_PATH,
     LOGO_WHITE_PATH,
     FRAME_SAVE_NAME,
@@ -40,21 +39,9 @@ class AppWindow(NSWindow):
     def keyDown_(self, event):
         self.delegate().keyDown_(event)
 
+    def close(self):
+        NSApp.hide_(None)
 
-# Custom view (contains click-and-drag area on top sliver of overlay).
-class DragArea(NSView):
-    def initWithFrame_(self, frame):
-        objc.super(DragArea, self).initWithFrame_(frame)
-        self.setWantsLayer_(True)
-        return self
-    
-    # Used to update top-bar background to (roughly) match app color.
-    def setBackgroundColor_(self, color):
-        self.layer().setBackgroundColor_(color.CGColor())
-
-    # Used to capture the click-and-drag event.
-    def mouseDown_(self, event):
-        self.window().performWindowDragWithEvent_(event)
 
 
 # The main delegate for running the overlay app.
@@ -66,7 +53,7 @@ class AppDelegate(NSObject):
         # Create a borderless, floating, resizable window
         self.window = AppWindow.alloc().initWithContentRect_styleMask_backing_defer_(
             NSMakeRect(500, 200, 550, 580),
-            NSBorderlessWindowMask | NSResizableWindowMask,
+            NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask,
             NSBackingStoreBuffered,
             False
         )
@@ -78,31 +65,12 @@ class AppDelegate(NSObject):
         # Save the last position and size
         self.window.setFrameAutosaveName_(FRAME_SAVE_NAME)
         # Make window transparent so that the corners can be rounded
-        self.window.setOpaque_(False)
-        self.window.setBackgroundColor_(NSColor.clearColor())
         # Set up content view with rounded corners
         content_view = NSView.alloc().initWithFrame_(self.window.contentView().bounds())
         content_view.setWantsLayer_(True)
-        content_view.layer().setCornerRadius_(CORNER_RADIUS)
-        content_view.layer().setBackgroundColor_(NSColor.whiteColor().CGColor())
         self.window.setContentView_(content_view)
-        # Set up drag area (top sliver, full width)
-        content_bounds = content_view.bounds()
-        self.drag_area = DragArea.alloc().initWithFrame_(
-            NSMakeRect(0, content_bounds.size.height - DRAG_AREA_HEIGHT, content_bounds.size.width, DRAG_AREA_HEIGHT)
-        )
-        content_view.addSubview_(self.drag_area)
-        # Add close button to the drag area
-        close_button = NSButton.alloc().initWithFrame_(NSMakeRect(5, 5, 20, 20))
-        close_button.setBordered_(False)
-        close_button.setImage_(NSImage.imageWithSystemSymbolName_accessibilityDescription_("xmark.circle.fill", None))
-        close_button.setTarget_(self)
-        close_button.setAction_("hideWindow:")
-        self.drag_area.addSubview_(close_button)
-        # Set up WebKit view (below drag area)
-        self.webview = WKWebView.alloc().initWithFrame_(
-            NSMakeRect(0, 0, content_bounds.size.width, content_bounds.size.height - DRAG_AREA_HEIGHT)
-        )
+        # Set up WebKit view
+        self.webview = WKWebView.alloc().initWithFrame_(content_view.bounds())
         self.webview.setAutoresizingMask_(NSViewWidthSizable | NSViewHeightSizable)  # Resizes with window
         content_view.addSubview_(self.webview)
         url = NSURL.URLWithString_(WEBSITE)
@@ -169,11 +137,6 @@ class AppDelegate(NSObject):
         # Add resize observer
         NSNotificationCenter.defaultCenter().addObserver_selector_name_object_(
             self, 'windowDidResize:', NSWindowDidResizeNotification, self.window
-        )
-        # Add local mouse event monitor for left mouse down
-        self.local_mouse_monitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(
-            NSEventMaskLeftMouseDown,  # Monitor left mouse-down events
-            self.handleLocalMouseEvent  # Handler method
         )
         # Create the event tap for key-down events
         tap = CGEventTapCreate(
@@ -266,29 +229,11 @@ class AppDelegate(NSObject):
             # elif key == 'z':
             #     self.window.firstResponder().undo_(None)
 
-    # Handler for capturing a click-and-drag event when not already the key window.
-    @objc.python_method
-    def handleLocalMouseEvent(self, event):
-        if event.window() == self.window:
-            # Get the click location in window coordinates
-            click_location = event.locationInWindow()
-            # Use hitTest_ to determine which view receives the click
-            hit_view = self.window.contentView().hitTest_(click_location)
-            # Check if the hit view is the drag area
-            if hit_view == self.drag_area:
-                # Bring the window to the front and make it key
-                self.showWindow_(None)
-                # Initiate window dragging with the event
-                self.window.performWindowDragWithEvent_(event)
-                return None  # Consume the event
-        return event  # Pass unhandled events along
-
     # Handler for when the window resizes (adjusts the drag area).
     def windowDidResize_(self, notification):
         bounds = self.window.contentView().bounds()
         w, h = bounds.size.width, bounds.size.height
-        self.drag_area.setFrame_(NSMakeRect(0, h - DRAG_AREA_HEIGHT, w, DRAG_AREA_HEIGHT))
-        self.webview.setFrame_(NSMakeRect(0, 0, w, h - DRAG_AREA_HEIGHT))
+        self.webview.setFrame_(NSMakeRect(0, 0, w, h))
 
     # Handler for setting the background color based on the web page background color.
     def userContentController_didReceiveScriptMessage_(self, userContentController, message):
@@ -299,7 +244,6 @@ class AppDelegate(NSObject):
                 rgb_values = [float(val) for val in bg_color_str[bg_color_str.index("(")+1:bg_color_str.index(")")].split(",")]
                 r, g, b = [val / 255.0 for val in rgb_values[:3]]
                 color = NSColor.colorWithCalibratedRed_green_blue_alpha_(r, g, b, 1.0)
-                self.drag_area.setBackgroundColor_(color)
 
     # Logic for checking what color the logo in the status bar should be, and setting appropriate logo.
     def updateStatusItemImage(self):
