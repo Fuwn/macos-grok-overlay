@@ -28,3 +28,5 @@ LAUNCHER_TRIGGER = {
     "flags": kCGEventFlagMaskAlternate,
     "key": 49
 }
+INITIAL_WIDTH = 580
+INITIAL_HEIGHT = 550

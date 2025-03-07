@@ -17,6 +17,8 @@ from .constants import (
     FRAME_SAVE_NAME,
     STATUS_ITEM_CONTEXT,
     WEBSITE,
+    INITIAL_WIDTH,
+    INITIAL_HEIGHT,
 )
 from .launcher import (
     install_startup,
@@ -52,7 +54,7 @@ class AppDelegate(NSObject):
         NSApp.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
         # Create a borderless, floating, resizable window
         self.window = AppWindow.alloc().initWithContentRect_styleMask_backing_defer_(
-            NSMakeRect(500, 200, 550, 580),
+            self.initialRectOnScreen(INITIAL_WIDTH, INITIAL_HEIGHT),
             NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask,
             NSBackingStoreBuffered,
             False
@@ -117,6 +119,9 @@ class AppDelegate(NSObject):
         hide_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Hide "+APP_TITLE, "hideWindow:", "h")
         hide_item.setTarget_(self)
         menu.addItem_(hide_item)
+        reset_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Reset Size & Position", "resetSizeAndPosition:", "r")
+        reset_item.setTarget_(self)
+        menu.addItem_(reset_item)
         home_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Home", "goToWebsite:", "g")
         home_item.setTarget_(self)
         menu.addItem_(home_item)
@@ -159,6 +164,20 @@ class AppDelegate(NSObject):
         load_custom_launcher_trigger()
         # Make sure this window is shown and focused.
         self.showWindow_(None)
+
+    def resetSizeAndPosition_(self, sender):
+        self.window.setFrame_display_(self.initialRectOnScreen(INITIAL_WIDTH, INITIAL_HEIGHT), True)
+        self.showWindow_(None)
+
+    @objc.python_method
+    def initialRectOnScreen(self, width, height):
+        screen_frame = NSScreen.mainScreen().visibleFrame()
+        screen_width, screen_height = screen_frame.size.width, screen_frame.size.height
+        screen_x, screen_y = screen_frame.origin.x, screen_frame.origin.y
+        new_x = screen_x + (screen_width - width) / 2
+        new_y = (screen_y + (screen_height - height) / 2) * 0.25
+
+        return NSMakeRect(new_x, new_y, width, height)
 
     # Logic to show the overlay, make it the key window, and focus on the typing area.
     def showWindow_(self, sender):
