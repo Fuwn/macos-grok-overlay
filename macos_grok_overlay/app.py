@@ -113,12 +113,10 @@ class AppDelegate(NSObject):
         # Create status bar menu
         menu = NSMenu.alloc().init()
         # Create and configure menu items with explicit targets
-        show_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Show "+APP_TITLE, "showWindow:", "")
-        show_item.setTarget_(self)
-        menu.addItem_(show_item)
-        hide_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Hide "+APP_TITLE, "hideWindow:", "h")
-        hide_item.setTarget_(self)
-        menu.addItem_(hide_item)
+        menu = NSMenu.alloc().init()
+        toggle_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Toggle Window", "toggleWindow:", "t")
+        toggle_item.setTarget_(self)
+        menu.addItem_(toggle_item)
         reset_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Reset Size & Position", "resetSizeAndPosition:", "r")
         reset_item.setTarget_(self)
         menu.addItem_(reset_item)
@@ -164,6 +162,12 @@ class AppDelegate(NSObject):
         load_custom_launcher_trigger()
         # Make sure this window is shown and focused.
         self.showWindow_(None)
+
+    def toggleWindow_(self, sender):
+        if self.window.isVisible():
+            self.hideWindow_(None)
+        else:
+            self.showWindow_(None)
 
     def resetSizeAndPosition_(self, sender):
         self.window.setFrame_display_(self.initialRectOnScreen(INITIAL_WIDTH, INITIAL_HEIGHT), True)
